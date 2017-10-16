@@ -95,8 +95,16 @@ func (be *Backend) Test(ctx context.Context, h restic.Handle) (bool, error) {
 // IsNotExist reports whether a given error indicates that an object or bucket
 // does not exist.
 func (be *Backend) IsNotExist(err error) bool {
-	ossErr := errors.Cause(err).(oss.ServiceError)
-	return (ossErr.Code == "NoSuchKey")
+	debug.Log("IsNotExist(%T, %#v)", err, err)
+
+	if os.IsNotExist(errors.Cause(err)) {
+		return true
+	}
+
+	if e, ok := errors.Cause(err).(oss.ServiceError); ok && e.Code == "NoSuchKey" {
+		return true
+	}
+	return false
 }
 
 // List - List Object with given type
