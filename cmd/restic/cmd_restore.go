@@ -33,6 +33,7 @@ type RestoreOptions struct {
 	Host    string
 	Paths   []string
 	Tags    restic.TagLists
+	Workers int
 }
 
 var restoreOptions RestoreOptions
@@ -48,6 +49,7 @@ func init() {
 	flags.StringVarP(&restoreOptions.Host, "host", "H", "", `only consider snapshots for this host when the snapshot ID is "latest"`)
 	flags.Var(&restoreOptions.Tags, "tag", "only consider snapshots which include this `taglist` for snapshot ID \"latest\"")
 	flags.StringArrayVar(&restoreOptions.Paths, "path", nil, "only consider snapshots which include this (absolute) `path` for snapshot ID \"latest\"")
+	flags.IntVarP(&restoreOptions.Workers, "worker", "c", 0, "enable concurrent restore worker")
 }
 
 func runRestore(opts RestoreOptions, gopts GlobalOptions, args []string) error {
@@ -149,9 +151,15 @@ func runRestore(opts RestoreOptions, gopts GlobalOptions, args []string) error {
 
 	Verbosef("restoring %s to %s\n", res.Snapshot(), opts.Target)
 
-	err = res.RestoreTo(ctx, opts.Target)
-	if totalErrors > 0 {
-		Printf("There were %d errors\n", totalErrors)
+	if opts.Workers != 0 {
+		resNg := restic.NewRestorer2(res, opts.Workers)
+		err = resNg.RestoreTo(ctx, opts.Target)
+	} else {
+		err = res.RestoreTo(ctx, opts.Target)
+		if totalErrors > 0 {
+			Printf("There were %d errors\n", totalErrors)
+		}
 	}
+
 	return err
 }
