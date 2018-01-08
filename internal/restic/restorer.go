@@ -176,6 +176,16 @@ func (res *Restorer) restoreDir(task *restoreTask) error {
 	}
 
 	for _, node := range tree.Nodes {
+		nodeName := filepath.Base(filepath.Join(string(filepath.Separator), node.Name))
+		if nodeName != node.Name {
+			debug.Log("node %q has invalid name %q", node.Name, nodeName)
+			err := res.Error(dir, node, errors.New("node has invalid name"))
+			if err != nil {
+				return err
+			}
+			continue
+		}
+
 		selectedForRestore, childMayBeSelected := res.SelectFilter(filepath.Join(dir, node.Name),
 			filepath.Join(dst, dir, node.Name), node)
 		debug.Log("SelectFilter returned %v %v", selectedForRestore, childMayBeSelected)
